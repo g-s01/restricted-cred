@@ -58,9 +58,21 @@ map<int, int> chunk_map;
 map<int, set<int>> chunk_nodes;
 /* storing the total time slots given on a node */
 map<int, int> node_time_slots;
+/* ids of the machines which have been created till now */
+set<int> machine_ids;
 
 /* function to schedule the chunks on machines */
+/*
+    Idea: by scheduling time slots from the chunks with the smallest number of required time slots,
+    we can remove more chunks.
+    Inputs: 
+    c -> vector of chunks in the form of ({chunk freqeuncy, chunk id}), 
+    nts -> number of available time slots, 
+    node -> node number
+*/
 vector<pair<int, int>> schedule(vector<pair<int, int>> c, int nts, int node){
+    cout << node << '\n';
+    sort(c.begin(), c.end());
     vector<pair<int, int>> res = c;
     reverse(res.begin(), res.end());
     for(int i = 0; i<c.size(); i++){
@@ -81,18 +93,41 @@ vector<pair<int, int>> schedule(vector<pair<int, int>> c, int nts, int node){
             res.pop_back();
         }
     }
-    if(res.size()) reverse(res.begin(), res.end());
+    if(res.size()){
+        for(int i = 0; i<res.size(); i++){
+            res[i].first = chunk_map[res[i].second];
+        }
+    }
     return res;
 }
 
 /* function to solve the problem for same deadlines */
+/*
+    Idea: find the first set of B chunks which require more than s*deadline time slots, make a new 
+    machine and schedule the chunks on it
+    then schedule the chunks which require less than s*deadline time slots on the other machines.
+    Inputs: 
+    chunks -> vector of chunks in the form of ({chunk freqeuncy, chunk id}), 
+    deadline -> deadline of the job
+*/
 int cred_s(vector<pair<int, int>> chunks, int deadline){
     if(chunks.size() == 0) return 0;
     sort(chunks.begin(), chunks.end(), greater<pair<int, int>>());
     int max_machines = 0;
     if(chunks.size() <= B){
         max_machines++;
-        vector<pair<int, int>> res = schedule(chunks, S*deadline, N_a+max_machines);
+        /* finding new machine id */
+        int x = 0;
+        if(machine_ids.size()){
+            auto it = machine_ids.end(); 
+            it--;
+            x = *it+max_machines;
+            machine_ids.insert(x);
+        }
+        else{
+            machine_ids.insert(0);
+        }
+        vector<pair<int, int>> res = schedule(chunks, S*deadline, x);
         max_machines += cred_s(res, S*deadline);
     }   
     else{
@@ -107,6 +142,17 @@ int cred_s(vector<pair<int, int>> chunks, int deadline){
             sum += chunks[j].first;
         }
         max_machines++;
+        /* finding new machine id */
+        int x = 0;
+        if(machine_ids.size()){
+            auto it = machine_ids.end(); 
+            it--;
+            x = *it+max_machines;
+            machine_ids.insert(x);
+        }
+        else{
+            machine_ids.insert(0);
+        }
         vector<pair<int, int>> c, new_chunks;
         for(int k = chunks.size()-1; k>i+1; k--){
             new_chunks.push_back(chunks[k]);
@@ -117,7 +163,7 @@ int cred_s(vector<pair<int, int>> chunks, int deadline){
         for(int k = j-1; k>=0; k--){
             new_chunks.push_back(chunks[k]);
         }
-        vector<pair<int, int>> res = schedule(c, S*deadline, N_a+max_machines);
+        vector<pair<int, int>> res = schedule(c, S*deadline, x);
         if(res.size()) new_chunks.insert(new_chunks.end(), res.begin(), res.end());
         max_machines += cred_s(new_chunks, S*deadline);
     }
@@ -125,6 +171,12 @@ int cred_s(vector<pair<int, int>> chunks, int deadline){
 }
 
 /* function to solve the problem for different deadlines */
+/*
+    Idea: first call cred_s for each deadline, then for each deadline
+    call schedule for each node, to reschedule the existing chunks on it to save time in the future
+    Inputs:
+    jobs -> vector of jobs
+*/
 void cred_m(vector<job> jobs){
     set<int> deadlines;
     for(auto it: jobs) deadlines.insert(it.deadline);
@@ -187,7 +239,7 @@ int main(){
     }
     N_a = cred_s(chunks, 5);
     std::cout << "N_a: " << N_a << '\n';
-    /* testing cred_m*/
+    /* testing cred_m */
     cred_m(jobs);
     std::cout << "N_a: " << N_a << '\n';
 }
