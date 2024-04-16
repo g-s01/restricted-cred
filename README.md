@@ -1,4 +1,4 @@
-# CRED: Cloud Right-sizing with Execution Deadlines and Data Locality
+# Restricted-CRED: Restricted Cloud Right-sizing with Execution Deadlines and Data Locality
 
 Implementation of the novel-heuristic algorithm proposed in [this](./cred.pdf) paper, with two further constraints:
 
@@ -7,6 +7,23 @@ Implementation of the novel-heuristic algorithm proposed in [this](./cred.pdf) p
 any other VM can access that chunk
 2. The time needed to evaluate a chunk is one unit only, irrespective of the chunk
 ```
+
+## Running the file
+
+Clone the repository using:
+
+```
+git clone https://github.com/g-s01/cred-implementation
+```
+
+and run the following commands in the project directory
+
+```
+g++ -std=c++17 cred.cpp
+./a.out
+```
+
+## Footnotes
 
 Done as part of [CS528: High Performance Computing](https://www.iitg.ac.in/cse/course-list.php?id=CS528) course at [IIT Guwahati](https://www.iitg.ac.in/). See the problem statements [here](./ps.pdf).
 
