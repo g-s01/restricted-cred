@@ -426,6 +426,13 @@ void simulation(){
     std::cout << "N_a: " << N_a << '\n';
 }
 
+/*
+    function for evaluation by putting manual test cases
+*/
+void manual(){
+
+}
+
 /* 
     function for evalution using google trace
 */
@@ -434,5 +441,7 @@ void trace(){
 }
 
 int main(){
-    simulation();
+    // simulation();
+    // manual();
+    // trace();
 }
