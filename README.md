@@ -13,7 +13,7 @@ any other VM can access that chunk
 Clone the repository using:
 
 ```
-git clone https://github.com/g-s01/cred-implementation
+https://github.com/g-s01/restricted-cred
 ```
 
 and run the following commands in the project directory
