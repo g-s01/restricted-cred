@@ -430,7 +430,7 @@ void simulation(){
     function for evaluation by putting manual test cases
 */
 void manual(){
-
+    cout << "TODO" << '\n';
 }
 
 /* 
