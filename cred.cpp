@@ -90,6 +90,12 @@ set<int> machine_ids;
     value: set of nodes
 */
 map<int, set<int>> chunk_node_map;
+/*
+	map to store how many chunks are stored on a node
+	key: node id
+    value: number of chunks on map	
+*/
+map<int, set<int>> node_load;
 
 /*
     function to give a random number between integers a and b
@@ -122,7 +128,8 @@ vector<pair<int, int>> schedule(vector<pair<int, int>> c, int nts, int node, int
             so we schedule the data chunk on this node for the minimum of the available time slots 
             and the deadline, exhausting all the available resources on this node
         */
-        if(c[i].first > min(node_time_slots[node], deadline)){
+        if(c[i].first > min(node_time_slots[node], deadline) && (node_load[node].count(node) || node_load[node].size() < B)){
+			node_load[node].insert(node);
             int give = min(node_time_slots[node], deadline);
             cout << "chunk " << c[i].second << " can't be scheduled fully on node " << node << '\n';
             cout << "chunk " << c[i].second << " scheduled on node " << node << " for # of slots " << give << '\n';
@@ -145,7 +152,8 @@ vector<pair<int, int>> schedule(vector<pair<int, int>> c, int nts, int node, int
             in this case, the data chunk can be scheduled fully on this node
             so we schedule the data chunk on this node for the required time slots 
         */
-        else{
+        else if(node_load[node].count(node) || node_load[node].size() < B){
+			node_load[node].insert(node);
             cout << "chunk " << c[i].second << " can be scheduled fully on node " << node << '\n';
             cout << "chunk " << c[i].second << " scheduled on node " << node << " for # of slots " << c[i].first << '\n';
             /* we are going to schedule the c[i].second chunk on this node for the current deadline */
@@ -212,9 +220,9 @@ int cred_s(vector<pair<int, int>> chunks, int virtual_deadline, int true_deadlin
             /* try to schedule the chunks on previous machines first */
             for(auto jt: machine_ids){
                 if(chunks.size() <= B){
-                    res = schedule(chunks, node_time_slots[jt], jt, true_deadline);
+                    res = schedule(chunks, node_time_slots[jt], jt, true_deadline);	
                     if(res.size()) new_chunks.insert(new_chunks.end(), res.begin(), res.end());
-                }
+               	}
                 else{
                     int sum = 0;
                     for(int i = chunks.size()-1; i>=chunks.size()-B; i--){
@@ -258,6 +266,7 @@ int cred_s(vector<pair<int, int>> chunks, int virtual_deadline, int true_deadlin
                 }
             }
             if(chunks.size()){
+				new_chunks.clear();
                 cout << "new machine created: " << *machine_ids.rbegin()+1 << '\n';
                 cout << "chunks to be scheduled on machine " << *machine_ids.rbegin()+1 << " for deadline " << true_deadline << ": " << '\n';
                 for(auto it: chunks){
@@ -266,7 +275,7 @@ int cred_s(vector<pair<int, int>> chunks, int virtual_deadline, int true_deadlin
                 machine_ids.insert(*machine_ids.rbegin()+1);
                 node_time_slots[*machine_ids.rbegin()] = S*true_deadline;
                 if(chunks.size() <= B){
-                    res = schedule(chunks, node_time_slots[*machine_ids.rbegin()], *machine_ids.rbegin(), true_deadline);
+					res = schedule(chunks, node_time_slots[*machine_ids.rbegin()], *machine_ids.rbegin(), true_deadline);
                     if(res.size()) new_chunks.insert(new_chunks.end(), res.begin(), res.end());
                 }
                 else{
@@ -346,6 +355,10 @@ void cred_m(vector<job> jobs){
             chunks.push_back({jt.second, jt.first});
         }
         /* scheduling the given chunks */
+		/* reusing time left out time slots */
+		for(auto jt: node_time_slots){
+			node_time_slots[jt.first] = jt.second + S*(it-prev);
+		}
         int temp = cred_s(chunks, S*(it-prev), it-prev);
         chunks.clear();
         /* scheduling the already allocated chunks for future on the already allocated machines */
@@ -365,6 +378,7 @@ void cred_m(vector<job> jobs){
                     if(chunk_node_map[kt.first].count(n) == 0 || kt.second == 0) continue;
                     chunks.push_back({kt.second, kt.first});
                 }
+				chunk_nodes.clear();
                 schedule(chunks, S*jt-node_time_slots[n], n, jt-temp_prev);
                 temp_prev = jt;
             }
@@ -379,24 +393,29 @@ void cred_m(vector<job> jobs){
 void simulation(){
     /* initialization */
     N = 1;
-    J = between(1, 10);
-    B = 128;
-    S = 4;
+    J = 4;
+    B = 2;
+    S = 2;
     /* creating the data chunks */
-    int total_chunks = between(1, 20);
+    int total_chunks = 5;
     for(int i = 0; i < total_chunks; i++){
         C.push_back(data_chunk(i));
     }
     /* creating the jobs */
-    vector<job> jobs(J);
-    for(int i = 0; i<J; i++){
-        total_chunks = between(1, 20);
-        for(int j = 0; j<total_chunks; j++){
-            int x = between(0, C.size()-1);
-            jobs[i].C_j.push_back(C[between(0, C.size()-1)]);
-        }
-        jobs[i].deadline = between(1, 10);
-    }
+   	vector<job> jobs(J);
+	jobs[0].deadline = 1; jobs[1].deadline = 1; jobs[2].deadline = 5; jobs[3].deadline = 5;
+	jobs[0].C_j.push_back(C[2]);
+	jobs[1].C_j.push_back(C[1]); jobs[1].C_j.push_back(C[4]);
+	jobs[2].C_j.push_back(C[3]); jobs[2].C_j.push_back(C[3]);
+	jobs[3].C_j.push_back(C[3]); jobs[3].C_j.push_back(C[3]); jobs[3].C_j.push_back(C[3]); jobs[3].C_j.push_back(C[4]);
+    //for(int i = 0; i<J; i++){
+    //    total_chunks = between(1, 20);
+    //    for(int j = 0; j<total_chunks; j++){
+    //        int x = between(0, C.size()-1);
+    //        jobs[i].C_j.push_back(C[between(0, C.size()-1)]);
+    //    }
+    //    jobs[i].deadline = between(1, 10);
+    //}
     /* printing the simulation profile */
     cout << "---------------------------- SIMULATION PROFILE ------------------------------" << '\n';
     cout << "Number of jobs: " << J << '\n';
@@ -420,7 +439,7 @@ void simulation(){
         }
     }
     machine_ids.insert(0);
-    node_time_slots[0] = S*4;
+    node_time_slots[0] = S*1;
     /* testing cred_m */
     cred_m(jobs);
     std::cout << "N_a: " << N_a << '\n';
@@ -441,7 +460,7 @@ void trace(){
 }
 
 int main(){
-    // simulation();
+    simulation();
     // manual();
     // trace();
 }
