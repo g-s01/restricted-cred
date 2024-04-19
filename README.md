@@ -1,12 +1,17 @@
 # Restricted-CRED: Restricted Cloud Right-sizing with Execution Deadlines and Data Locality
 
+![r-cred-icon](./assets/icon.png)
+
 Implementation of the novel-heuristic algorithm proposed in [this](./cred.pdf) paper, with two further constraints:
 
 ```
 1. In a time slot, only one virtual machine (VM) of a node can access a particular data chunk, not
 any other VM can access that chunk
 2. The time needed to evaluate a chunk is one unit only, irrespective of the chunk
+3. Optimal re-use of machines before making a new machine
 ```
+
+![ps](./assets/r-cred.png)
 
 ## Running the file
 
